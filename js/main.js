@@ -135,10 +135,10 @@ function setupGallery() {
   $$(".polaroid").forEach((button) => button.addEventListener("click", () => openLightbox(button.dataset.full, button.dataset.caption)));
 }
 
-function openLightbox(src, caption) {
+function openLightbox(src, caption, alt = caption) {
   const image = $("#lightbox-image");
   image.src = src;
-  image.alt = caption;
+  image.alt = alt;
   image.onerror = () => { image.onerror = null; image.src = "assets/images/placeholder.svg"; };
   $("#lightbox-caption").textContent = caption;
   $("#lightbox").hidden = false;
@@ -451,22 +451,35 @@ function setupScrapbook() {
   if (!scrapbook) return;
 
   $("#scrapbook-title").innerHTML = [...scrapbook.title].map((letter, index) => `<span class="ransom-letter letter-${index % 6}" style="--letter-i:${index}">${letter}</span>`).join("");
+  const cameraPortrait = scrapbook.cameraPortrait;
+  const memoryPhotos = (scrapbook.photos || []).filter((photo) => photo.src !== cameraPortrait.src);
+  // Fisher–Yates keeps every photo exactly once in a fresh order each visit.
+  for (let i = memoryPhotos.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [memoryPhotos[i], memoryPhotos[j]] = [memoryPhotos[j], memoryPhotos[i]];
+  }
+  const loosePhotos = memoryPhotos.slice(2);
+  $("#memory-photos").innerHTML = loosePhotos.map((photo, index) => `
+    <button class="memory-polaroid memory-position-${index}" type="button" style="--photo-tilt:${(Math.random() * 8 - 4).toFixed(1)}deg">
+      <img src="${photo.src}" alt="${photo.alt}" loading="lazy" width="360" height="360">
+    </button>`).join("");
+  $$(".memory-polaroid").forEach((button, index) => {
+    button.addEventListener("click", () => openLightbox(loosePhotos[index].src, "", loosePhotos[index].alt));
+  });
+
   const license = scrapbook.license;
   $("#license-name").textContent = license.name;
   $("#license-number").textContent = license.number;
   $("#license-dob").textContent = license.dob;
   $("#license-place").textContent = license.placeOfIssue;
   $("#license-text").textContent = license.text;
-  $("#license-photo").src = license.photo;
-  $("#license-photo").alt = license.name + " — passport photo";
+  $("#license-photo").src = memoryPhotos[1].src;
+  $("#license-photo").alt = memoryPhotos[1].alt;
   $(".void-stamp").textContent = license.voidText;
 
-  let cameraIndex = 0;
+  $("#camera-photo").setAttribute("href", cameraPortrait.src);
+  $("#camera-photo").setAttribute("aria-label", cameraPortrait.alt);
   $("#camera-click").addEventListener("click", () => {
-    cameraIndex = (cameraIndex + 1) % scrapbook.cameraPhotos.length;
-    const photo = scrapbook.cameraPhotos[cameraIndex];
-    $("#camera-photo").setAttribute("href", photo.src);
-    $("#camera-photo").setAttribute("alt", photo.alt);
     shutterSound();
     if (!reducedMotion) {
       const cameraFlash = $("#camera-flash");
@@ -476,8 +489,8 @@ function setupScrapbook() {
     }
   });
 
-  $("#music-card-photo").src = scrapbook.musicCard.photo;
-  $("#music-card-photo").alt = scrapbook.musicCard.alt;
+  $("#music-card-photo").src = memoryPhotos[0].src;
+  $("#music-card-photo").alt = memoryPhotos[0].alt;
 
   const envelope = $(".envelope-card");
   $("#gift-envelopes").addEventListener("click", () => {
@@ -524,7 +537,7 @@ function setupScrapbook() {
 
     sticker.addEventListener("pointermove", (event) => {
       if (!dragging) return;
-      const boardRect = $("#scrapbook-board").getBoundingClientRect();
+      const boardRect = $(".scrapbook-canvas").getBoundingClientRect();
       const left = originLeft - startX + event.clientX - boardRect.left;
       const top = originTop - startY + event.clientY - boardRect.top;
       sticker.style.left = left / boardRect.width * 100 + "%";

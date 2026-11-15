@@ -1,3 +1,25 @@
+section#shot-9 .final-polaroid img{width:100%;height:auto;aspect-ratio:auto;object-fit:contain}
+.polaroid img.photo-full{object-fit:contain;background:#e8e5dc}
+@media(min-width:700px){.polaroid-wall{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.corner-player{display:grid!important;grid-template-columns:1fr!important;width:min(350px,calc(100vw - 24px))!important;gap:5px!important;padding:8px 10px!important;border-radius:16px!important}
+.corner-song-controls{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr));align-items:center;gap:4px;width:100%}
+.corner-song-info{display:grid!important;width:100%!important;grid-column:1;grid-template-columns:1fr;gap:2px}
+@media(max-width:430px){.corner-player.visible{right:8px;bottom:8px;width:calc(100vw - 16px)!important;max-width:350px}.corner-song-controls{gap:3px}.corner-song-controls button{height:27px;font-size:.66rem}}
+/* Final corner player layout overrides */
+.corner-player{display:grid;grid-template-columns:1fr;width:min(350px,calc(100vw - 24px));gap:5px;padding:8px 10px;border-radius:16px}
+.corner-song-controls{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:center;gap:4px;width:100%}
+.corner-song-controls button{width:100%;height:28px;min-width:0;padding:0;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:.7rem;line-height:1}
+.corner-song-controls .corner-song-toggle{height:31px;border:0;border-radius:50%;background:var(--gold);color:var(--ink);font-size:.92rem}
+.corner-song-info{width:100%;grid-column:1;grid-template-columns:1fr;gap:2px}
+@media(max-width:430px){.corner-player{right:8px;bottom:8px;width:calc(100vw - 16px);max-width:350px}.corner-song-controls{gap:3px}.corner-song-controls button{height:27px;font-size:.66rem}.corner-song-info select{font-size:.7rem}.corner-song-info small{font-size:.6rem}}
+/* Expanded shared corner-player controls */
+.corner-player{display:grid;grid-template-columns:1fr;width:min(350px,calc(100vw - 24px));gap:5px;padding:8px 10px;border-radius:16px}
+.corner-song-controls{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));align-items:center;gap:4px;width:100%}
+.corner-song-controls button{width:100%;height:28px;min-width:0;padding:0;border:1px solid rgba(255,255,255,.16);border-radius:8px;background:rgba(255,255,255,.08);color:#fff;font-size:.7rem;line-height:1}
+.corner-song-controls .corner-song-toggle{height:31px;border:0;border-radius:50%;background:var(--gold);color:var(--ink);font-size:.92rem}
+.corner-song-info{width:100%;grid-column:1;grid-template-columns:1fr;gap:2px}
+.board-player-controls{display:flex;justify-content:center;gap:3%}.board-player-controls button{width:28%;min-width:0}
+@media(max-width:430px){.corner-player{right:8px;bottom:8px;width:calc(100vw - 16px);max-width:350px}.corner-song-controls{gap:3px}.corner-song-controls button{height:27px;font-size:.66rem}.corner-song-info select{font-size:.7rem}.corner-song-info small{font-size:.6rem}}
 /* Through Papa's Lens */
 :root{--night1:#090b24;--night2:#1a1a43;--night3:#40345c;--glass:rgba(18,24,52,.72);--cream:#f7f1df;--ink:#20243a;--gold:#e1c47a;--green:#79d9a6;--white:#fffaf0;--mono:'Share Tech Mono',monospace;--body:'Mukta',sans-serif;--hand:'Kalam',cursive;--serif:'Tiro Devanagari Marathi',serif}
 *{box-sizing:border-box}[hidden]{display:none!important}html{scroll-behavior:smooth;scroll-snap-type:y mandatory}body{margin:0;max-width:100%;overflow-x:hidden;font-family:var(--body);color:var(--white);background:linear-gradient(180deg,var(--night1),var(--night2) 55%,var(--night3));line-height:1.55}button,input{font:inherit}button{cursor:pointer}img{display:block;max-width:100%}

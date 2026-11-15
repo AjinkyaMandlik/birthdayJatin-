@@ -126,15 +126,10 @@ function setupTitle() {
   $("#final-thank").textContent = data.titleLine;
 }
 
-function setupLetter() {
-  const letter = data.letter.replace("{{MY_NAME}}", data.myName);
-  $("#letter-text").innerHTML = letter.split("\n\n").map((paragraph) => `<p class="letter-line">${paragraph.replace(/\n/g, "<br>")}</p>`).join("");
-}
-
 function setupGallery() {
   $("#gallery").innerHTML = data.gallery.map((item) => `
     <button class="polaroid" type="button" data-full="${item.image}" data-caption="${item.caption}">
-      <img src="${item.image}" alt="${item.alt}" onerror="this.onerror=null;this.src='assets/images/placeholder.svg'">
+      <img class="${item.fit === "contain" ? "photo-full" : ""}" src="${item.image}" alt="${item.alt}" onerror="this.onerror=null;this.src='assets/images/placeholder.svg'">
       <span>${item.caption}</span>
     </button>`).join("");
   $$(".polaroid").forEach((button) => button.addEventListener("click", () => openLightbox(button.dataset.full, button.dataset.caption)));
@@ -175,19 +170,30 @@ function setupSongs() {
   const select = $("#corner-song-select");
   const cornerProgress = $("#corner-song-progress");
   const cornerStatus = $("#corner-song-status");
+  const cornerPrev = $("#corner-song-prev");
+  const cornerNext = $("#corner-song-next");
+  const cornerStop = $("#corner-song-stop");
+  const cornerVolumeDown = $("#corner-volume-down");
+  const cornerVolumeUp = $("#corner-volume-up");
   const boardPlay = $("#board-play");
   const boardPrev = $("#board-prev");
   const boardNext = $("#board-next");
   const boardProgress = $("#board-song-progress");
   const boardStatus = $("#board-song-status");
   let currentIndex = 0;
+  let startAt = 0;
+  let introSkipPending = false;
 
   select.innerHTML = data.songs.map((song, index) => `<option value="${index}">${song.title} — ${song.singer}</option>`).join("");
+  audio.volume = 0.7;
 
   function load(index) {
     currentIndex = index;
     const song = data.songs[index];
+    startAt = song.startAt || 0;
+    introSkipPending = false;
     audio.pause();
+    audio.muted = false;
     audio.src = song.file;
     select.value = String(index);
     $("#board-song-title").textContent = song.title;
@@ -200,21 +206,79 @@ function setupSongs() {
     boardPlay.textContent = "▶";
   }
 
+  function setPlayState(playing) {
+    toggle.textContent = playing ? "❚❚" : "♪";
+    boardPlay.textContent = playing ? "❚❚" : "▶";
+    toggle.setAttribute("aria-label", playing ? "गाणे थांबवा" : "गाणे प्ले करा");
+    boardPlay.setAttribute("aria-label", playing ? "गीत थांबवा" : "गीत प्ले करा");
+  }
+
+  function changeTrack(index) {
+    const wasPlaying = !audio.paused;
+    load(index);
+    if (wasPlaying) playPause();
+  }
+
+  function stopPlayback() {
+    audio.pause();
+    introSkipPending = false;
+    audio.muted = false;
+    if (audio.readyState >= 1 && Number.isFinite(audio.duration)) {
+      audio.currentTime = Math.min(startAt, Math.max(0, audio.duration - 0.05));
+    }
+    cornerProgress.value = 0;
+    boardProgress.value = 0;
+    setPlayState(false);
+  }
+
+  function adjustVolume(change) {
+    audio.volume = Math.max(0, Math.min(1, Math.round((audio.volume + change) * 10) / 10));
+    const percent = Math.round(audio.volume * 100);
+    cornerVolumeDown.setAttribute("aria-label", `आवाज कमी करा (${percent}%)`);
+    cornerVolumeUp.setAttribute("aria-label", `आवाज वाढवा (${percent}%)`);
+  }
+
+  function applyStartOffset() {
+    if (!startAt || !Number.isFinite(audio.duration)) return;
+    const target = Math.min(startAt, Math.max(0, audio.duration - 0.05));
+    if (audio.currentTime < target) {
+      introSkipPending = true;
+      audio.muted = true;
+      audio.currentTime = target;
+    }
+  }
+
+  async function waitForMetadata() {
+    if (audio.readyState >= 1) return;
+    await new Promise((resolve, reject) => {
+      const onLoaded = () => { cleanup(); resolve(); };
+      const onError = () => { cleanup(); reject(new Error("Audio metadata unavailable")); };
+      const cleanup = () => {
+        audio.removeEventListener("loadedmetadata", onLoaded);
+        audio.removeEventListener("error", onError);
+      };
+      audio.addEventListener("loadedmetadata", onLoaded, { once: true });
+      audio.addEventListener("error", onError, { once: true });
+    });
+  }
+
   async function playPause() {
     if (audio.paused) {
       try {
+        await waitForMetadata();
+        applyStartOffset();
         await audio.play();
-        toggle.textContent = "❚❚";
-        boardPlay.textContent = "❚❚";
+        setPlayState(true);
         getAudioContext();
       } catch (error) {
+        introSkipPending = false;
+        audio.muted = false;
         cornerStatus.textContent = "MP3 फाइल अजून उपलब्ध नाही";
         boardStatus.textContent = "MP3 फाइल अजून उपलब्ध नाही";
       }
     } else {
       audio.pause();
-      toggle.textContent = "♪";
-      boardPlay.textContent = "▶";
+      setPlayState(false);
     }
   }
 
@@ -222,26 +286,49 @@ function setupSongs() {
   select.addEventListener("change", () => load(Number(select.value)));
   toggle.addEventListener("click", playPause);
   boardPlay.addEventListener("click", playPause);
-  boardPrev.addEventListener("click", () => load((currentIndex - 1 + data.songs.length) % data.songs.length));
-  boardNext.addEventListener("click", () => load((currentIndex + 1) % data.songs.length));
+  cornerPrev.addEventListener("click", () => changeTrack((currentIndex - 1 + data.songs.length) % data.songs.length));
+  boardPrev.addEventListener("click", () => changeTrack((currentIndex - 1 + data.songs.length) % data.songs.length));
+  cornerNext.addEventListener("click", () => changeTrack((currentIndex + 1) % data.songs.length));
+  boardNext.addEventListener("click", () => changeTrack((currentIndex + 1) % data.songs.length));
+  cornerStop.addEventListener("click", stopPlayback);
+  cornerVolumeDown.addEventListener("click", () => adjustVolume(-0.1));
+  cornerVolumeUp.addEventListener("click", () => adjustVolume(0.1));
   audio.addEventListener("timeupdate", () => {
+    if (introSkipPending) {
+      const lastRange = audio.seekable.length - 1;
+      if (audio.currentTime >= startAt) {
+        introSkipPending = false;
+        audio.muted = false;
+      } else if (lastRange >= 0 && audio.seekable.end(lastRange) >= startAt) {
+        applyStartOffset();
+      }
+    }
     if (audio.duration) {
-      const value = audio.currentTime / audio.duration * 100;
+      const playableDuration = Math.max(0.01, audio.duration - startAt);
+      const value = Math.max(0, Math.min(100, (audio.currentTime - startAt) / playableDuration * 100));
       cornerProgress.value = value;
       boardProgress.value = value;
     }
   });
+  audio.addEventListener("seeked", () => {
+    if (introSkipPending && audio.currentTime >= startAt) {
+      introSkipPending = false;
+      audio.muted = false;
+    }
+  });
+  audio.addEventListener("loadedmetadata", applyStartOffset);
   audio.addEventListener("error", () => {
     cornerStatus.textContent = "MP3 फाइल अजून उपलब्ध नाही";
     boardStatus.textContent = "MP3 फाइल अजून उपलब्ध नाही";
   });
   audio.addEventListener("ended", () => {
-    toggle.textContent = "♪";
-    boardPlay.textContent = "▶";
+    setPlayState(false);
   });
-  function seek(progress, value) { if (audio.duration) audio.currentTime = value / 100 * audio.duration; }
-  cornerProgress.addEventListener("input", () => seek(cornerProgress, Number(cornerProgress.value)));
-  boardProgress.addEventListener("input", () => seek(boardProgress, Number(boardProgress.value)));
+  function seek(value) {
+    if (audio.duration) audio.currentTime = startAt + value / 100 * Math.max(0, audio.duration - startAt);
+  }
+  cornerProgress.addEventListener("input", () => seek(Number(cornerProgress.value)));
+  boardProgress.addEventListener("input", () => seek(Number(boardProgress.value)));
 }
 
 function setupCake() {
@@ -474,7 +561,7 @@ function setupScrapbook() {
 }
 
 function setupShots() {
-  const total = 10;
+  const total = 9;
   if (reducedMotion) {
     $$(".reveal-shot").forEach((element) => element.classList.add("developed"));
     $$(".letter-line").forEach((element) => element.classList.add("visible"));
@@ -522,7 +609,6 @@ function setupEasterEgg() {
 
 window.addEventListener("DOMContentLoaded", () => {
   initStars();
-  setupLetter();
   setupGallery();
   setupScrapbook();
   setupReasons();

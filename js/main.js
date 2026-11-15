@@ -150,15 +150,6 @@ function closeLightbox() {
   document.body.style.overflow = "";
 }
 
-function setupReasons() {
-  const reasons = Array.from({ length: data.age }, (_, index) => data.reasonTemplates[index] || data.reasonTemplates[index % data.reasonTemplates.length]);
-  $("#reasons-grid").innerHTML = reasons.map((reason, index) => `
-    <button class="reason-card" type="button" aria-label="कारण ${index + 1}">
-      <span class="reason-inner"><span class="reason-face reason-front">${index + 1}</span><span class="reason-face reason-back">${reason}</span></span>
-    </button>`).join("");
-  $$(".reason-card").forEach((card) => card.addEventListener("click", () => card.classList.toggle("flipped")));
-}
-
 function setupMessages() {
   $("#messages-grid").innerHTML = data.messages.map((message) => `
     <article class="message-card"><h3>${message.name}</h3><small>${message.relation}</small><p>“${message.message}”</p></article>`).join("");
@@ -561,7 +552,7 @@ function setupScrapbook() {
 }
 
 function setupShots() {
-  const total = 9;
+  const total = $$(".shot").length;
   if (reducedMotion) {
     $$(".reveal-shot").forEach((element) => element.classList.add("developed"));
     $$(".letter-line").forEach((element) => element.classList.add("visible"));
@@ -586,7 +577,8 @@ function setupShots() {
         setTimeout(() => element.classList.add("visible"), index * 260);
       });
     });
-  }, { threshold: 0.42 });
+  // Tall sections must reveal even when only part of them fits in the viewport.
+  }, { threshold: 0, rootMargin: "0px 0px -15% 0px" });
   $$(".shot").forEach((section) => observer.observe(section));
 }
 
@@ -611,7 +603,6 @@ window.addEventListener("DOMContentLoaded", () => {
   initStars();
   setupGallery();
   setupScrapbook();
-  setupReasons();
   setupMessages();
   setupSongs();
   setupCake();

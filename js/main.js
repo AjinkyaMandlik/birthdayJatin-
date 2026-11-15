@@ -452,13 +452,14 @@ function setupScrapbook() {
 
   $("#scrapbook-title").innerHTML = [...scrapbook.title].map((letter, index) => `<span class="ransom-letter letter-${index % 6}" style="--letter-i:${index}">${letter}</span>`).join("");
   const cameraPortrait = scrapbook.cameraPortrait;
-  const memoryPhotos = (scrapbook.photos || []).filter((photo) => photo.src !== cameraPortrait.src);
+  const license = scrapbook.license;
+  const memoryPhotos = (scrapbook.photos || []).filter((photo) => photo.src !== cameraPortrait.src && photo.src !== license.photo);
   // Fisher–Yates keeps every photo exactly once in a fresh order each visit.
   for (let i = memoryPhotos.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [memoryPhotos[i], memoryPhotos[j]] = [memoryPhotos[j], memoryPhotos[i]];
   }
-  const loosePhotos = memoryPhotos.slice(2);
+  const loosePhotos = memoryPhotos.slice(1);
   $("#memory-photos").innerHTML = loosePhotos.map((photo, index) => `
     <button class="memory-polaroid memory-position-${index}" type="button" style="--photo-tilt:${(Math.random() * 8 - 4).toFixed(1)}deg">
       <img src="${photo.src}" alt="${photo.alt}" loading="lazy" width="360" height="360">
@@ -467,14 +468,13 @@ function setupScrapbook() {
     button.addEventListener("click", () => openLightbox(loosePhotos[index].src, "", loosePhotos[index].alt));
   });
 
-  const license = scrapbook.license;
   $("#license-name").textContent = license.name;
   $("#license-number").textContent = license.number;
   $("#license-dob").textContent = license.dob;
   $("#license-place").textContent = license.placeOfIssue;
   $("#license-text").textContent = license.text;
-  $("#license-photo").src = memoryPhotos[1].src;
-  $("#license-photo").alt = memoryPhotos[1].alt;
+  $("#license-photo").src = license.photo;
+  $("#license-photo").alt = license.photoAlt;
   $(".void-stamp").textContent = license.voidText;
 
   $("#camera-photo").setAttribute("href", cameraPortrait.src);
